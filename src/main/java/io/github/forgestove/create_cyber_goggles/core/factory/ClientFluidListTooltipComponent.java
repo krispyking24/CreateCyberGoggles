@@ -1,7 +1,6 @@
 package io.github.forgestove.create_cyber_goggles.core.factory;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.forgestove.create_cyber_goggles.core.util.SlotUtil;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.util.FastColor.ARGB32;
@@ -13,6 +12,8 @@ import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+
+import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.mc;
 public final class ClientFluidListTooltipComponent implements ClientTooltipComponent {
 	private final List<FluidStack> fluids;
 	private final int maxColumns;
@@ -32,6 +33,27 @@ public final class ClientFluidListTooltipComponent implements ClientTooltipCompo
 			data -> new ClientFluidListTooltipComponent(data.fluids(), data.indent(), data.maxColumns())
 		);
 	}
+	@Override
+	public int getHeight() {
+		return Math.max(1, rows) * SlotUtil.SIZE + 4;
+	}
+	@Override
+	public int getWidth(@NotNull Font font) {
+		return columns * SlotUtil.SIZE + indentPixels(font);
+	}
+	private int indentPixels(@NotNull Font font) {
+		return indent * font.width(" ");
+	}
+	@Override
+	public void renderImage(@NotNull Font font, int x, int y, @NotNull GuiGraphics gui) {
+		for (var i = 0; i < fluids.size(); i++) {
+			var col = i % maxColumns;
+			var row = i / maxColumns;
+			var slotX = x + col * SlotUtil.SIZE + indentPixels(font);
+			var slotY = y + row * SlotUtil.SIZE;
+			renderFluidBar(gui, fluids.get(i), slotX, slotY, SlotUtil.SIZE, SlotUtil.SIZE);
+		}
+	}
 	public static void renderFluidBar(@NotNull GuiGraphics gui, @NotNull FluidStack stack, int x, int y, int width, int height) {
 		gui.blitSprite(SlotUtil.SLOT, x, y, 0, SlotUtil.SIZE, SlotUtil.SIZE + 2);
 		if (stack.isEmpty()) return;
@@ -45,7 +67,7 @@ public final class ClientFluidListTooltipComponent implements ClientTooltipCompo
 		if (stack.isEmpty()) return;
 		var ext = IClientFluidTypeExtensions.of(stack.getFluid());
 		var still = ext.getStillTexture(stack);
-		var sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(still);
+		var sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(still);
 		var tint = ext.getTintColor(stack);
 		var r = ARGB32.red(tint) / 255F;
 		var g = ARGB32.green(tint) / 255F;
@@ -53,33 +75,15 @@ public final class ClientFluidListTooltipComponent implements ClientTooltipCompo
 		var a = ARGB32.alpha(tint) / 255F;
 		RenderSystem.enableBlend();
 		RenderSystem.setShaderColor(r, g, b, a);
-		for (var dx = 0; dx < width; dx += 16) {
-			var sliceWidth = Math.min(16, width - dx);
-			if (sliceWidth <= 0) break;
-			gui.blit(x + dx, y, 0, sliceWidth, height, sprite);
+		try {
+			for (var dx = 0; dx < width; dx += 16) {
+				var sliceWidth = Math.min(16, width - dx);
+				gui.blit(x + dx, y, 0, sliceWidth, height, sprite);
+			}
+		} finally {
+			RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
+			RenderSystem.disableBlend();
 		}
-		RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
-	}
-	@Override
-	public int getHeight() {
-		return Math.max(1, rows) * SlotUtil.SIZE + 4;
-	}
-	@Override
-	public int getWidth(@NotNull Font font) {
-		return columns * SlotUtil.SIZE + indentPixels(font);
-	}
-	@Override
-	public void renderImage(@NotNull Font font, int x, int y, @NotNull GuiGraphics gui) {
-		for (var i = 0; i < fluids.size(); i++) {
-			var col = i % maxColumns;
-			var row = i / maxColumns;
-			var slotX = x + col * SlotUtil.SIZE + indentPixels(font);
-			var slotY = y + row * SlotUtil.SIZE;
-			renderFluidBar(gui, fluids.get(i), slotX, slotY, SlotUtil.SIZE, SlotUtil.SIZE);
-		}
-	}
-	private int indentPixels(@NotNull Font font) {
-		return indent * font.width(" ");
 	}
 	public record FluidListTooltipComponent(List<FluidStack> fluids, int indent, int maxColumns) implements TooltipComponent {}
 }

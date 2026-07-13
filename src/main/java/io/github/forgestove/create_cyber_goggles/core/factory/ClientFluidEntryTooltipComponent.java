@@ -2,7 +2,6 @@ package io.github.forgestove.create_cyber_goggles.core.factory;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.forgestove.create_cyber_goggles.core.util.*;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
@@ -15,6 +14,8 @@ import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactori
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.neoforged.neoforge.fluids.FluidStack;
 import org.jetbrains.annotations.NotNull;
+
+import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.mc;
 public record ClientFluidEntryTooltipComponent(FluidStack fluid, int indent, int capacityMb, int sharedBarWidth)
 	implements ClientTooltipComponent {
 	private static final int H_PADDING = 4;
@@ -51,7 +52,7 @@ public record ClientFluidEntryTooltipComponent(FluidStack fluid, int indent, int
 		if (stack.isEmpty()) return;
 		var ext = IClientFluidTypeExtensions.of(stack.getFluid());
 		var still = ext.getStillTexture(stack);
-		var sprite = Minecraft.getInstance().getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(still);
+		var sprite = mc.getTextureAtlas(InventoryMenu.BLOCK_ATLAS).apply(still);
 		var tint = ext.getTintColor(stack);
 		var r = ARGB32.red(tint) / 255F;
 		var g = ARGB32.green(tint) / 255F;
@@ -59,33 +60,16 @@ public record ClientFluidEntryTooltipComponent(FluidStack fluid, int indent, int
 		var a = ARGB32.alpha(tint) / 255F;
 		RenderSystem.enableBlend();
 		RenderSystem.setShaderColor(r, g, b, a);
-		gui.enableScissor(x, y, x + width, y + height);
-		for (var dx = 0; dx < width; dx += 16)
-			for (var dy = 0; dy < height; dy += 16)
-				gui.blit(x + dx, y + dy, 0, 16, 16, sprite);
-		gui.disableScissor();
-		RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
-	}
-	public static @NotNull String formatFluidAmount(int amountMb) {
-		if (amountMb < 1000) return amountMb + "mB";
-		if (amountMb % 1000 == 0) return amountMb / 1000 + "B";
-		var value = amountMb / 1000F;
-		return CCGLang.number(value).string() + "B";
-	}
-	public static int preferredBarWidth(@NotNull Font font, @NotNull FluidStack fluid, int capacityMb) {
-		var label = buildLabel(fluid, capacityMb, Screen.hasShiftDown());
-		return Math.max(SlotUtil.SIZE * 4, font.width(label) + H_PADDING * 2);
-	}
-	private static @NotNull Component buildLabel(@NotNull FluidStack fluid, int capacityMb, boolean showCapacity) {
-		if (fluid.isEmpty()) return CCGLang.translate("tooltip.empty")
-			.component()
-			.copy()
-			.append(" ")
-			.append(Component.literal(formatFluidAmount(capacityMb)));
-		var label = fluid.getHoverName().copy().append(" ").append(Component.literal(formatFluidAmount(fluid.getAmount())));
-		if (showCapacity) return label.append(Component.literal(" / ").withStyle(ChatFormatting.GRAY))
-			.append(Component.literal(formatFluidAmount(capacityMb)).withStyle(ChatFormatting.GRAY));
-		return label;
+		try {
+			gui.enableScissor(x, y, x + width, y + height);
+			for (var dx = 0; dx < width; dx += 16)
+				for (var dy = 0; dy < height; dy += 16)
+					gui.blit(x + dx, y + dy, 0, 16, 16, sprite);
+		} finally {
+			gui.disableScissor();
+			RenderSystem.setShaderColor(1F, 1F, 1F, 1F);
+			RenderSystem.disableBlend();
+		}
 	}
 	private @NotNull Component buildLabel() {
 		return buildLabel(fluid, capacityMb, Screen.hasShiftDown());
@@ -98,6 +82,30 @@ public record ClientFluidEntryTooltipComponent(FluidStack fluid, int indent, int
 	public int getWidth(@NotNull Font font) {
 		return indentPixels(font) + barWidth(font);
 	}
+	private int indentPixels(@NotNull Font font) {
+		return indent * font.width(" ");
+	}
+	private int barWidth(@NotNull Font font) {
+		var preferred = preferredBarWidth(font, fluid, capacityMb);
+		return Math.max(preferred, sharedBarWidth);
+	}
+	public static int preferredBarWidth(@NotNull Font font, @NotNull FluidStack fluid, int capacityMb) {
+		var label = buildLabel(fluid, capacityMb, Screen.hasShiftDown());
+		return Math.max(SlotUtil.SIZE * 4, font.width(label) + H_PADDING * 2);
+	}
+	private static @NotNull Component buildLabel(@NotNull FluidStack fluid, int capacityMb, boolean showCapacity) {
+		if (fluid.isEmpty()) return CCGLang.translate("tooltip.empty").space().text(formatFluidAmount(capacityMb)).component();
+		var label = CCGLang.builder().add(fluid.getHoverName()).space().text(formatFluidAmount(fluid.getAmount()));
+		if (showCapacity)
+			return label.text(" / ", ChatFormatting.GRAY).text(formatFluidAmount(capacityMb), ChatFormatting.GRAY).component();
+		return label.component();
+	}
+	public static @NotNull String formatFluidAmount(int amountMb) {
+		if (amountMb < 1000) return amountMb + "mB";
+		if (amountMb % 1000 == 0) return amountMb / 1000 + "B";
+		var value = amountMb / 1000F;
+		return CCGLang.number(value).string() + "B";
+	}
 	@Override
 	public void renderImage(@NotNull Font font, int x, int y, @NotNull GuiGraphics gui) {
 		var label = buildLabel();
@@ -107,13 +115,6 @@ public record ClientFluidEntryTooltipComponent(FluidStack fluid, int indent, int
 		var textX = barX + H_PADDING;
 		var textY = y + Mth.floor((SlotUtil.SIZE_SLIM - font.lineHeight) / 2F) + 1;
 		gui.drawString(font, label, textX, textY, 0xFFFFFFFF, true);
-	}
-	private int barWidth(@NotNull Font font) {
-		var preferred = preferredBarWidth(font, fluid, capacityMb);
-		return Math.max(preferred, sharedBarWidth);
-	}
-	private int indentPixels(@NotNull Font font) {
-		return indent * font.width(" ");
 	}
 	public record FluidEntryTooltipComponent(FluidStack fluid, int indent, int capacityMb) implements TooltipComponent {}
 }

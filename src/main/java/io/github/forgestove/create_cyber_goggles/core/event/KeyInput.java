@@ -6,8 +6,8 @@ import com.simibubi.create.content.logistics.filter.*;
 import com.simibubi.create.content.logistics.stockTicker.*;
 import com.simibubi.create.content.logistics.tableCloth.TableClothBlockEntity;
 import io.github.forgestove.create_cyber_goggles.CCG;
-import io.github.forgestove.create_cyber_goggles.config.Config;
 import io.github.forgestove.create_cyber_goggles.core.util.*;
+import io.github.forgestove.config.client.ConfigScreenFactory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.sounds.SoundEvents;
@@ -19,40 +19,18 @@ import net.neoforged.neoforge.client.event.InputEvent.*;
 import java.util.Map;
 
 import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.*;
-public class KeyInput {
+public final class KeyInput {
 	public static StockTickerBlockEntity lastSTBE;
 	public static int scrollDeltaY;
 	public static void key(Key ignoredEvent) {
-		toggleGoggle();
-		toggleDiving();
 		openConfigScreen();
 		openStockScreen();
 		previewFilterScreen();
 	}
-	public static void mouseScroll(MouseScrollingEvent event) {
-		clothStore(event);
-		tryScrollClipboardPage(event);
-	}
-	private static void toggleGoggle() {
-		toggleConfig(
-			CCGKey.toggleGoggle.isDown(),
-			CCG.config.gameMode.enableGoggles,
-			val -> CCG.config.gameMode.enableGoggles = val,
-			"message.goggle"
-		);
-	}
-	private static void toggleDiving() {
-		toggleConfig(
-			CCGKey.toggleDiving.isDown(),
-			CCG.config.misc.allowDivingBoot,
-			val -> CCG.config.misc.allowDivingBoot = val,
-			"message.divingBoot"
-		);
-	}
 	private static void openConfigScreen() {
 		if (!CCGKey.openConfig.isDown()) return;
 		if (isInGUI()) return;
-		mc.setScreen(Config.createConfigScreen(CCG.ID));
+		mc.setScreen(ConfigScreenFactory.createConfigScreen(CCG.ID));
 	}
 	private static void openStockScreen() {
 		if (!CCGKey.openStock.isDown()) return;
@@ -82,6 +60,10 @@ public class KeyInput {
 			(id, inv, stack) -> new PackageFilterScreen(PackageFilterMenu.create(id, inv, stack), inv, stack.getHoverName())
 		).get(itemStack.getItem()).apply(-1, mc.player.getInventory(), itemStack));
 		playSound(SoundEvents.BOOK_PAGE_TURN, 1.0f, 1.0f);
+	}
+	public static void mouseScroll(MouseScrollingEvent event) {
+		clothStore(event);
+		tryScrollClipboardPage(event);
 	}
 	private static void clothStore(MouseScrollingEvent event) {
 		if (!CCG.config.goggles.betterStoreInfo) return;

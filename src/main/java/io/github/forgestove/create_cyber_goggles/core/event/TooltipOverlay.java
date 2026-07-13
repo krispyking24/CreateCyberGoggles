@@ -7,7 +7,7 @@ import io.github.forgestove.create_cyber_goggles.core.factory.*;
 import io.github.forgestove.create_cyber_goggles.core.factory.ClientFluidEntryTooltipComponent.FluidEntryTooltipComponent;
 import io.github.forgestove.create_cyber_goggles.core.factory.ClientItemEntryTooltipComponent.ItemEntryTooltipComponent;
 import io.github.forgestove.create_cyber_goggles.core.factory.TooltipTheme.Theme;
-import io.github.forgestove.create_cyber_goggles.core.util.*;
+import io.github.forgestove.create_cyber_goggles.core.util.TooltipComponentUtil;
 import net.createmod.catnip.gui.element.BoxElement;
 import net.createmod.catnip.theme.Color;
 import net.minecraft.client.DeltaTracker;
@@ -25,13 +25,15 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.*;
-public class TooltipOverlay {
-	public static int hoverTicks;
+public final class TooltipOverlay {
+	public static float hoverTicks;
+	private static ItemStack lastItemStack = ItemStack.EMPTY;
+	private static boolean liftAboveGoggle;
 	public static void register(@NotNull RegisterGuiLayersEvent event) {
 		event.registerAbove(VanillaGuiLayers.HOTBAR, getCCGRes("tooltip_overlay"), TooltipOverlay::renderOverlay);
 	}
 	public static void renderOverlay(GuiGraphics gui, DeltaTracker deltaTracker) {
-		if (!CCG.config.overlay.renderItemOverlay || !CCG.config.gameMode.enableGoggles) return;
+		if (!CCG.config.overlay.renderItemOverlay || !CCG.config.goggles.gameMode.enableGoggles) return;
 		if (shouldSuppressInfo()) return;
 		if (mc.isPaused() || isInGUI() || mc.options.hideGui) {
 			hoverTicks = 0;
@@ -39,8 +41,18 @@ public class TooltipOverlay {
 		}
 		if (!CCG.config.goggles.canRenderOnValueBox && hasActivedValueBox()) return;
 		var itemStack = toRenderItemStack();
-		if (itemStack.isEmpty()) hoverTicks = 0;
-		else renderItemStack(gui, itemStack);
+		if (itemStack.isEmpty()) {
+			if (CCG.config.goggles.enableFadeOut && hoverTicks > 0) {
+				hoverTicks = Math.max(0, hoverTicks - getRealtimeDeltaTicks() * 2);
+				renderItemStack(gui, lastItemStack);
+			} else hoverTicks = 0;
+			return;
+		}
+		hoverTicks = Math.min(8, hoverTicks + getRealtimeDeltaTicks());
+		lastItemStack = itemStack;
+		// 锁存"是否抬到目镜信息上方"，使淡出期间保持在偏移后的位置，而非随护目镜层的 hoverTicks 提前落回原位
+		liftAboveGoggle = GoggleOverlayRenderer.hoverTicks > 0;
+		renderItemStack(gui, itemStack);
 	}
 	public static @NotNull ItemStack toRenderItemStack() {
 		try {
@@ -60,7 +72,7 @@ public class TooltipOverlay {
 		var back = theme.backColor();
 		var top = theme.topColor();
 		var bot = theme.botColor();
-		var fade = Mth.clamp((getRealtimeDeltaTicks() + hoverTicks++) / 24F, 0, 1);
+		var fade = Mth.clamp(hoverTicks / 8F, 0, 1);
 		if (fade < 1) {
 			pose.translate(Math.pow(1 - fade, 3) * Math.signum(cfg.overlayOffsetX.get() + 0.5D) * 8, 0, 0);
 			back.scaleAlpha(fade);
@@ -69,8 +81,8 @@ public class TooltipOverlay {
 		}
 		var width = gui.guiWidth();
 		var height = gui.guiHeight();
-		var x = width / 2 + cfg.overlayOffsetX.get() + overlay.overlayOffsetX;
-		var y = height / 2 + cfg.overlayOffsetY.get() + overlay.overlayOffsetY;
+		var x = width / 2 + cfg.overlayOffsetX.get() + overlay.overlayPos.x;
+		var y = height / 2 + cfg.overlayOffsetY.get() + overlay.overlayPos.y;
 		if (overlay.tooltipFlagType == null) overlay.tooltipFlagType = TooltipFlagType.Default;
 		var tooltipLines = itemStack.getTooltipLines(TooltipContext.of(mc.level), mc.player, overlay.tooltipFlagType.getFlag());
 		var components = buildTooltipComponents(tooltipLines, width - x - 16, true);
@@ -82,7 +94,8 @@ public class TooltipOverlay {
 			tooltipWidth = Math.max(tooltipWidth, component.getWidth(mc.font));
 			tooltipHeight += component.getHeight();
 		}
-		if (GoggleOverlayRenderer.hoverTicks != 0) y -= tooltipHeight + 10;
+		// 物品悬浮框淡入淡出全程停留在该偏移位置
+		if (liftAboveGoggle) y -= tooltipHeight + 10;
 		x = Mth.clamp(x, 0, width - tooltipWidth);
 		y = Mth.clamp(y, 16, height - tooltipHeight - 100);
 		renderTooltip(gui, itemStack, components, x, y, tooltipWidth, tooltipHeight, back.getRGB(), top.getRGB(), bot.getRGB());

@@ -11,14 +11,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 
 import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.*;
-public class TipOverlay {
+public final class TipOverlay {
 	public static List<MutableComponent> lastTip;
 	public static int hoverTicks;
 	public static int deltaX, deltaY;
 	public static void register(@NotNull RegisterGuiLayersEvent event) {
 		event.registerAbove(VanillaGuiLayers.HOTBAR, getCCGRes("tip_overlay"), TipOverlay::renderOverlay);
 	}
-	public static void renderOverlay(GuiGraphics gui, DeltaTracker deltaTracker) {
+	public static void renderOverlay(GuiGraphics gui, DeltaTracker ignoredDeltaTracker) {
 		if (mc.options.hideGui) return;
 		if (hoverTicks == 0 || lastTip == null) return;
 		var x = gui.guiWidth() / 2 + deltaX;
@@ -32,6 +32,9 @@ public class TipOverlay {
 			i++;
 		}
 	}
+	public static void show(List<MutableComponent> tip) {
+		show(tip, 0, 0);
+	}
 	/**
 	 * 每次滴答发生时，此方法应在{@link TipOverlay#tick(Post)}之前运行
 	 * <p>
@@ -43,9 +46,6 @@ public class TipOverlay {
 		lastTip = tip;
 		deltaX = x;
 		deltaY = y;
-	}
-	public static void show(List<MutableComponent> tip) {
-		show(tip, 0, 0);
 	}
 	public static void tick(Post ignoredEvent) {
 		if (hoverTicks > 0) hoverTicks--;

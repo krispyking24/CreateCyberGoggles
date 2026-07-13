@@ -2,7 +2,7 @@ package io.github.forgestove.create_cyber_goggles.mixin.misc;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.content.equipment.clipboard.ClipboardBlockItem;
 import io.github.forgestove.create_cyber_goggles.CCG;
-import io.github.forgestove.create_cyber_goggles.core.gui.ClipboardRenderer;
+import io.github.forgestove.create_cyber_goggles.core.tooltipRenderer.ClipboardRenderer;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.*;
 import net.minecraft.world.InteractionHand;
@@ -13,16 +13,6 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ItemInHandRenderer.class)
 public abstract class ItemInHandRendererMixin {
-	@Shadow
-	protected abstract void renderOneHandedMap(
-		PoseStack poseStack,
-		MultiBufferSource buffer,
-		int packedLight,
-		float equippedProgress,
-		HumanoidArm hand,
-		float swingProgress,
-		ItemStack stack
-	);
 	@Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true)
 	private void renderClipboardLikeMap(
 		AbstractClientPlayer player,
@@ -47,6 +37,16 @@ public abstract class ItemInHandRendererMixin {
 		poseStack.popPose();
 		ci.cancel();
 	}
+	@Shadow
+	protected abstract void renderOneHandedMap(
+		PoseStack poseStack,
+		MultiBufferSource buffer,
+		int packedLight,
+		float equippedProgress,
+		HumanoidArm hand,
+		float swingProgress,
+		ItemStack stack
+	);
 	@Inject(method = "renderMap", at = @At("HEAD"), cancellable = true)
 	private void renderClipboardPage(PoseStack poseStack, MultiBufferSource buffer, int packedLight, ItemStack stack, CallbackInfo ci) {
 		if (!CCG.config.tooltip.clipboard) return;

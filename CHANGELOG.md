@@ -1,1 +1,2 @@
-- Add onlyOnWithGoggles option
+- Add hot key bind for config system
+- Remove old hot key toggleDiving and toggleGoggle

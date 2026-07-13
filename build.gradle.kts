@@ -46,7 +46,8 @@ repositories {
 	maven("https://maven.createmod.net") // Create, Ponder, Flywheel
 	maven("https://mvn.devos.one/snapshots") // Registrate
 	maven("https://maven.ryanhcode.dev/releases") // Aeronautics
-	maven("https://maven.blamejared.com") // JEI, Veil
+	maven("https://maven.blamejared.com") // JEI, Veil, Ars Nouveau
+	maven("https://maven.terraformersmc.com") // EMI
 	maven("https://api.modrinth.com/maven") { content { includeGroup("maven.modrinth") } } // Modrinth
 }
 dependencies {
@@ -61,7 +62,7 @@ dependencies {
 	implementation("dev.ryanhcode.offroad:offroad-${p("loader")}-${p("mcVersion")}:${p("areoVersion")}") { isTransitive = false }
 	implementation("dev.eriksonn.aeronautics:aeronautics-${p("loader")}-${p("mcVersion")}:${p("areoVersion")}") { isTransitive = false }
 	implementation("dev.ryanhcode.sable:sable-${p("loader")}-${p("mcVersion")}:${p("sableVersion")}") { isTransitive = false }
-	implementation("dev.ryanhcode.sable-companion:sable-companion-common-${p("mcVersion")}:${p("sableCompanionVersion")}")
+	implementation("dev.ryanhcode.sable-companion:sable-companion-common-${p("mcVersion")}:${p("sableCompanionVersion")}") { isTransitive = false }
 	implementation("foundry.veil:veil-${p("loader")}-${p("mcVersion")}:${p("veilVersion")}")
 	//endregion
 	//region Enchantment Industry
@@ -69,6 +70,10 @@ dependencies {
 	compileOnly("maven.modrinth:create-dragons-plus:${p("dragonPlusVersion")}")
 	//endregion
 	implementation("mezz.jei:jei-${p("mcVersion")}-${p("loader")}:${p("jeiVersion")}")
+	compileOnly("dev.emi:emi-${p("loader")}:${p("emiVersion")}+${p("mcVersion")}")
+	compileOnly("maven.modrinth:sophisticated-core:${p("mcVersion")}-${p("sophisticatedCoreVersion")}")
+	compileOnly("com.hollingsworth.ars_nouveau:ars_nouveau-${p("mcVersion")}:${p("arsNouveauVersion")}") { isTransitive = false }
+	compileOnly("org.appliedenergistics:appliedenergistics2:${p("appliedenergisticsVersion")}")
 	runtimeOnly("maven.modrinth:jade:${p("jadeVersion")}+${p("loader")}")
 	add("additionalRuntimeClasspath", "dev.vfyjxf:mixin-hotswap-agent:${p("mixinAgentVersion")}")
 }
@@ -76,7 +81,7 @@ publishMods {
 	file.set(tasks.jar.get().archiveFile)
 	additionalFiles.from(tasks.named<Jar>("sourcesJar").flatMap { it.archiveFile })
 	changelog.set(file("CHANGELOG.md").readText())
-	type.set(STABLE)
+	type.set(BETA)
 	version.set(project.version.toString())
 	displayName.set("[${p("loaderCap")}] ${p("modVersion")} for Create ${p("mcVersion")}-${p("createMinVersion")}")
 	modLoaders.addAll(p("loaderCap"))
@@ -84,6 +89,7 @@ publishMods {
 		accessToken.set(providers.environmentVariable("MODRINTH_TOKEN"))
 		projectId.set("TlQAWQCY")
 		minecraftVersions.add(p("mcVersion"))
+		environment.set(CLIENT_ONLY_SERVER_OPTIONAL)
 		requires("create")
 		optional("create-aeronautics")
 	}

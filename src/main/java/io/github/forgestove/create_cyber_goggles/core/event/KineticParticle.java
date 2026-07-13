@@ -15,7 +15,7 @@ import net.neoforged.neoforge.client.event.ClientTickEvent.Post;
 import org.jetbrains.annotations.NotNull;
 
 import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.*;
-public class KineticParticle {
+public final class KineticParticle {
 	public static void tick(Post ignoredEvent) {
 		if (!CCG.config.goggles.enableKineticEffect || mc.level == null || isInGUI()) return;
 		var kbe = getBlockEntity(KineticBlockEntity.class);
@@ -43,7 +43,7 @@ public class KineticParticle {
 		for (var direction : Direction.values()) {
 			if (!kb.hasShaftTowards(mc.level, kbe.getBlockPos(), state, direction)) continue;
 			var axis = direction.getAxis();
-			var directionSpeed = particleSpeed * RotationPropagatorAccessor.getAxisModifier(kbe, direction);
+			var directionSpeed = particleSpeed * RotationPropagatorAccessor.callGetAxisModifier(kbe, direction);
 			var offset = direction.getAxisDirection().getStep() / 2D;
 			var axisVec = new Vec3(axis == Axis.X ? offset : 0, axis == Axis.Y ? offset : 0, axis == Axis.Z ? offset : 0);
 			var pos = center.add(axisVec);
