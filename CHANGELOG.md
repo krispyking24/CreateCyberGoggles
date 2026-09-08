@@ -1,2 +1,4 @@
-- Add hot key bind for config system
-- Remove old hot key toggleDiving and toggleGoggle
+- Add EMI compatibility to the Redstone Requester
+- Fix the Redstone Requester undo button state machine
+- Fix crashes caused by "Image is not allocated" in some cases
+- Remove the duplicate tooltip line deduplication and add an interface to resolve duplicated content

@@ -6,6 +6,7 @@ import dev.ryanhcode.sable.api.physics.force.ForceGroups;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import io.github.forgestove.create_cyber_goggles.CCG;
+import io.github.forgestove.create_cyber_goggles.core.factory.*;
 import net.minecraft.client.Camera;
 import net.minecraft.client.gui.Font.DisplayMode;
 import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
@@ -24,15 +25,13 @@ import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.*;
  * 为当前目标子层级在世界中渲染力箭头和质心标记。
  */
 public final class ForceOverlayRenderer {
-	private static final ResourceLocation GRAVITY_KEY = getRes("sable", "gravity");
+	private static final ResourceLocation GRAVITY_KEY = CCGMods.sable.rl("gravity");
 	private static final double COM_HALF = 0.08, TAIL_SPHERE_PER_BBOX = 0.005, MAX_TAIL_SPHERE_RADIUS = 0.08, CONE_LEN_PER_LENGTH = 0.1,
 		CONE_RADIUS_PER_LEN = 0.4, SHAFT_RADIUS_PER_CONE = 0.35, CONE_RADIUS_PER_TAIL = 1.5, SHAFT_RADIUS_PER_TAIL = 1.0;
-	/**
-	 * 注册到 {@link RenderLevelStageEvent} 的 {@link Stage#AFTER_LEVEL} 阶段。
-	 */
-	public static void onRenderStage(RenderLevelStageEvent event) {
+	public static void render(RenderLevelStageEvent event) {
 		if (event.getStage() != Stage.AFTER_LEVEL) return;
 		if (!CCG.config.aeronautics.forceOverlay.enableForceOverlay) return;
+		if (shouldSuppressInfo()) return;
 		var player = mc.player;
 		var level = mc.level;
 		if (player == null || level == null) return;
@@ -62,8 +61,8 @@ public final class ForceOverlayRenderer {
 			var scale = overlayPixelScale(renderPos, camPos);
 			var hasData = ForceOverlay.hasData();
 			// 渲染质心标记（始终渲染，即使没有数据）
-			if (CCG.config.aeronautics.forceOverlay.renderCenterOfMass) {
-				var fillType = OverlayRenderTypes.OVERLAY_FILL;
+			if (CCG.config.aeronautics.forceOverlay.showCenterOfMass) {
+				var fillType = CCGRenderTypes.OVERLAY_FILL;
 				var consumer = bufferSource.getBuffer(fillType);
 				float r, g, b;
 				if (hasData) {
@@ -173,7 +172,7 @@ public final class ForceOverlayRenderer {
 		});
 		if (arrows.isEmpty()) return;
 		// 渲染所有箭头
-		var triType = OverlayRenderTypes.OVERLAY_TRIANGLES;
+		var triType = CCGRenderTypes.OVERLAY_TRIANGLES;
 		var triConsumer = bufferSource.getBuffer(triType);
 		var pose = poseStack.last();
 		for (var a : arrows) {
@@ -215,7 +214,7 @@ public final class ForceOverlayRenderer {
 		poseStack.pushPose();
 		poseStack.last().pose().identity();
 		poseStack.last().normal().identity();
-		var textScaleF = (float) (0.025 * scale);
+		var textScaleF = (float) (0.01 * scale * config.worldLabelScale);
 		// 采集：计算每个标签的世界坐标
 		record Entry(Component text, Vector3d worldPos) {}
 		List<Entry> entries = new ArrayList<>();
@@ -256,7 +255,7 @@ public final class ForceOverlayRenderer {
 		}
 		var cameraRot = new Quaternionf(camera.rotation());
 		// 背景
-		var fillConsumer = bufferSource.getBuffer(OverlayRenderTypes.OVERLAY_FILL);
+		var fillConsumer = bufferSource.getBuffer(CCGRenderTypes.OVERLAY_FILL);
 		for (var e : entries) {
 			var halfW = font.width(e.text) / 2f;
 			poseStack.pushPose();
@@ -266,7 +265,7 @@ public final class ForceOverlayRenderer {
 			drawLabelBg(poseStack.last(), fillConsumer, halfW);
 			poseStack.popPose();
 		}
-		bufferSource.endBatch(OverlayRenderTypes.OVERLAY_FILL);
+		bufferSource.endBatch(CCGRenderTypes.OVERLAY_FILL);
 		// 文字
 		RenderSystem.disableCull();
 		for (var e : entries) {

@@ -1,5 +1,6 @@
 package io.github.forgestove.create_cyber_goggles.core.util;
-import io.github.forgestove.create_cyber_goggles.mixin.accessor.FontAccessor;
+import io.github.forgestove.create_cyber_goggles.CCG;
+import io.github.forgestove.create_cyber_goggles.core.factory.CCGMods;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.Font.DisplayMode;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -49,33 +50,52 @@ public final class ItemCountFontUtil {
 		});
 		if (rl[0] == null || !rl[0].equals(FONT_CREATE)) return;
 		if (!dropShadow) return;
-		var alpha = color >> 24 & 255;
-		var red = color >> 16 & 255;
-		var green = color >> 8 & 255;
-		var blue = color & 255;
-		var darkenFactor = 0.22F;
-		red = (int) ((float) red * darkenFactor) & 255;
-		green = (int) ((float) green * darkenFactor) & 255;
-		blue = (int) ((float) blue * darkenFactor) & 255;
-		var shadowColor = alpha << 24 | red << 16 | green << 8 | blue;
-		var matrix4f = new Matrix4f(matrix);
-		matrix4f.translate(0F, 0F, 0.1F);
-		var accessor = (FontAccessor) font;
-		for (var dx = -1; dx <= 1; dx++)
-			for (var dy = -1; dy <= 1; dy++)
-				if (dx != 0 || dy != 0) accessor.callDrawInternal(
-					text,
-					x + dx,
-					y + dy,
-					shadowColor,
-					false,
-					matrix4f,
-					buffer,
-					DisplayMode.NORMAL,
-					0,
-					packedLightCoords
-				);
-		accessor.callDrawInternal(text, x, y, color, false, matrix4f, buffer, DisplayMode.POLYGON_OFFSET, 0, packedLightCoords);
+		var shadowColor = CCG.config.misc.createStackCount.countOutlineColor;
+		if (!CCGMods.modernui.isLoaded()) font.drawInBatch8xOutline(text, x, y, color, shadowColor, matrix, buffer, packedLightCoords);
+		else drawInBatch8xOutline(font, text, x, y, color, shadowColor, matrix, buffer, packedLightCoords);
 		cir.setReturnValue(font.width(text) + 1);
+	}
+	public static void drawInBatch8xOutline(
+		Font font,
+		FormattedCharSequence text,
+		float x,
+		float y,
+		int color,
+		int shadowColor,
+		Matrix4f matrix,
+		MultiBufferSource buffer,
+		int packedLightCoords
+	) {
+		var finalY = y - 1F;
+		var adjusted = Font.adjustColor(shadowColor);
+		var outputOutliner = font.new StringRenderOutput(buffer, 0, 0, adjusted, false, matrix, DisplayMode.NORMAL, packedLightCoords);
+		for (var dx = -1; dx <= 1; dx++)
+			for (var dy = -1; dy <= 1; dy++) {
+				if (dx == 0 && dy == 0) continue;
+				var cursorX = new float[]{x};
+				var finalDx = dx;
+				var finalDy = dy;
+				text.accept((pos, style, codePoint) -> {
+					var fontset = font.getFontSet(style.getFont());
+					var glyphinfo = fontset.getGlyphInfo(codePoint, font.filterFishyGlyphs);
+					var offset = glyphinfo.getShadowOffset();
+					outputOutliner.x = cursorX[0] + finalDx * offset * 2F;
+					outputOutliner.y = finalY + finalDy * offset * 2F;
+					cursorX[0] += glyphinfo.getAdvance(style.isBold());
+					return outputOutliner.accept(pos, style.withColor(adjusted), codePoint);
+				});
+			}
+		var outputInner = font.new StringRenderOutput(
+			buffer,
+			x,
+			finalY,
+			Font.adjustColor(color),
+			false,
+			matrix,
+			DisplayMode.POLYGON_OFFSET,
+			packedLightCoords
+		);
+		text.accept(outputInner);
+		outputInner.finish(0, x);
 	}
 }

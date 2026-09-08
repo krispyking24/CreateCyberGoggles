@@ -1,6 +1,6 @@
 package io.github.forgestove.create_cyber_goggles;
 import io.github.forgestove.create_cyber_goggles.core.factory.*;
-import io.github.forgestove.config.api.*;
+import io.github.forgestove.flexconfig.api.*;
 
 import java.awt.Point;
 @Config(CCG.ID)
@@ -15,13 +15,12 @@ public final class CCGConfig {
 		@Category(false) public GameMode gameMode = new GameMode();
 		public boolean enhancedInfo = true;
 		public boolean hideStaticKineticInfo = false;
-		public boolean onlyOnWithGoggles = false;
+		public boolean onlyOnWithGoggles = true;
 		public boolean betterStoreInfo = true;
 		public boolean betterFactoryGauge = true;
 		public boolean enableKineticEffect = true;
 		public boolean disableInScreenGoggles = true;
 		public boolean canRenderOnValueBox = false;
-		public boolean dedupTooltipLines = true;
 		public boolean enableFadeOut = true;
 		public boolean preciseNumber = true;
 		@IntRange(min = 0) public int maxFractionDigits = 2;
@@ -50,6 +49,7 @@ public final class CCGConfig {
 		public boolean attributeFilter = true;
 		public boolean packageItem = true;
 		public boolean packageEntity = true;
+		public boolean placard = true;
 		public boolean itemEntity = true;
 		public boolean deployer = true;
 		public boolean depot = true;
@@ -90,14 +90,15 @@ public final class CCGConfig {
 		public boolean alwaysShowFriction = false;
 		public boolean liftLimitOfHandleRange = false;
 		public boolean customHandleMoveSublevelKey = false;
-		public boolean alwaysAllowRidingRope = true;
+		@WarnCheat public boolean alwaysAllowRidingRope = false;
+		@WarnCheat public boolean enablePhysicsStaff = false;
 		@Category public ForceOverlay forceOverlay = new ForceOverlay();
 		public static class ForceOverlay {
 			public boolean enableForceOverlay = true;
-			public boolean useWorldLabels = true;
 			public boolean hudPanelEnabled = true;
-			public boolean renderCenterOfMass = true;
 			public Point forceOverlayPos = new Point();
+			public boolean useWorldLabels = true;
+			@DoubleRange(min = 0, max = 10) public double worldLabelScale = 1.0;
 			@DoubleRange(min = 0) public double clusterAngleRadians = 0.1;
 			@DoubleRange(min = 0, max = 1) public double smoothingFactor = 0.5;
 			@DoubleRange(min = 0, max = 1) public double gravityArrowFraction = 0.5;
@@ -106,6 +107,7 @@ public final class CCGConfig {
 			@IntRange(min = 1, max = 64) public int targetingChunks = 4;
 			@IntRange(min = 1) public int heartbeatIntervalTicks = 10;
 			@DoubleRange(min = 0) public double minOverlayPixelSize = 0;
+			public boolean showCenterOfMass = true;
 			public boolean showGravity = true;
 			public boolean showDrag = true;
 			public boolean showLevitation = true;
@@ -118,27 +120,27 @@ public final class CCGConfig {
 	public static class Misc {
 		@Category(false) public ChainConveyor chainConveyor = new ChainConveyor();
 		@Category(false) public Wrench wrench = new Wrench();
-		public boolean createStyleCount = true;
-		public boolean removeMechanicalArmLimit = false;
+		@Category public CreateStackCount createStackCount = new CreateStackCount();
+		@Category public Jei jei = new Jei();
+		public boolean quickRequestActions = true;
 		public boolean removeRequestLimit = true;
-		public boolean stockRequestQuickActions = true;
-		public boolean recursiveSchematicScan = true;
-		public boolean preventSelectionDiscard = true;
-		public boolean preventAutoCloseFilter = false;
+		@WarnCheat public boolean removeMechanicalArmLimit = false;
 		public boolean infEditBoxLength = false;
 		public boolean removeCardboardOverlay = true;
 		public boolean removeNetheriteFirstPerson = false;
+		public boolean preventSelectionDiscard = true;
+		public boolean preventAutoCloseFilter = false;
 		public boolean allowDivingBoot = true;
+		public boolean recursiveSchematicScan = true;
 		public boolean fixSchematicName = true;
-		public boolean removeTrainDamage = false;
-		public boolean enableNegativeInfThrottle = false;
+		@WarnCheat public boolean removeTrainDamage = false;
+		@WarnCheat public boolean enableNegativeInfThrottle = false;
 		public boolean forcedBackend = false;
 		public boolean nbtFix = false;
-		public boolean showScrapContent = true;
 		public static class ChainConveyor {
-			public boolean alwaysAllowRidingChain = false;
+			@WarnCheat public boolean alwaysAllowRidingChain = false;
 			public boolean preventFalling = false;
-			public boolean enhancedConnection = true;
+			@WarnCheat public boolean enhancedConnection = true;
 			public boolean cardBoardedYourself = false;
 		}
 		public static class Wrench {
@@ -146,10 +148,20 @@ public final class CCGConfig {
 			public boolean betterEncasedPipe = true;
 			public boolean betterChassis = true;
 			public boolean alwaysShowScrollValue = true;
-			public boolean alwaysAllowRotating = true;
 			public boolean leftClickFastDismantle = true;
 			public boolean removeCooldown = true;
-			public boolean enchancedRotationMenu = false;
+			@WarnCheat public boolean alwaysAllowRotating = true;
+			@WarnCheat public boolean enchancedRotationMenu = false;
+		}
+		public static class CreateStackCount {
+			public boolean enableCreateStyleStackCount = false;
+			@ColorValue(true) public int countOutlineColor = 0xFF383838;
+		}
+		public static class Jei {
+			public boolean allowLargeCrafting = true;
+			public boolean optimizeRecipeProcessing = true;
+			public boolean redstoneRequesterJEIRequest = true;
+			public boolean showScrapContent = true;
 		}
 	}
 }

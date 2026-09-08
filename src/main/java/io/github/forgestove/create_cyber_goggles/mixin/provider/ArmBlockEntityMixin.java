@@ -1,7 +1,8 @@
 package io.github.forgestove.create_cyber_goggles.mixin.provider;
 import com.simibubi.create.AllSpecialTextures;
 import com.simibubi.create.content.kinetics.mechanicalArm.*;
-import io.github.forgestove.create_cyber_goggles.core.api.*;
+import io.github.forgestove.create_cyber_goggles.api.*;
+import io.github.forgestove.create_cyber_goggles.core.util.contract.Self;
 import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.*;
 
@@ -19,8 +20,8 @@ public abstract class ArmBlockEntityMixin implements ItemRenderable, OutlineRend
 	}
 	@Override
 	public void ccg$render() {
+		var center = thiz().getBlockPos().getCenter();
 		List.of(inputs, outputs).forEach(points -> {
-			var center = thiz().getBlockPos().getCenter();
 			for (var point : points) {
 				if (!point.isValid()) continue;
 				var level = point.getLevel();

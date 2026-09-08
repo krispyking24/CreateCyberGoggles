@@ -15,7 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.*;
 public class NativeImageUtil {
 	private static final int BASE = 0xC6C6C6;
-	private static final float MIN_LUMA = 78F;
+	private static final float MIN_LUMA = 100F;
 	private static final float MAX_LUMA = 208F;
 	private static final Map<String, Integer> ID_COLOR_MAP = new LinkedHashMap<>();
 	private static final Map<Item, Integer> ITEM_COLOR_CACHE = new ConcurrentHashMap<>();
@@ -52,13 +52,15 @@ public class NativeImageUtil {
 			if (path.contains("_" + entry.getKey() + "_")) return entry.getValue();
 		return BASE;
 	}
+	@SuppressWarnings("resource")
 	private static int sampleFromBakedModelIcon(ItemStack stack) {
 		var model = mc.getItemRenderer().getModel(stack, mc.level, mc.player, 0);
 		var sprite = model.getParticleIcon(ModelData.EMPTY);
-		try (var contents = sprite.contents()) {
-			var spriteName = contents.name();
-			return sampleTexture(getRes(spriteName.getNamespace(), "textures/" + spriteName.getPath() + ".png"));
-		}
+		// sprite.contents() 返回的是图集共享的 SpriteContents 对象,绝不能 close()——否则会把该精灵底层的
+		// NativeImage 释放掉,等下一个 tick TextureAtlas 上传动画帧时崩在 "Image is not allocated"。
+		// 这里只读 name,不需要持有/关闭它。
+		var spriteName = sprite.contents().name();
+		return sampleTexture(getRes(spriteName.getNamespace(), "textures/" + spriteName.getPath() + ".png"));
 	}
 	private static int clampLuma(int rgb) {
 		var r = rgb >> 16 & 0xFF;
@@ -95,11 +97,15 @@ public class NativeImageUtil {
 		for (var y = 0; y < image.getHeight(); y += stepY)
 			for (var x = 0; x < image.getWidth(); x += stepX) {
 				var pixel = image.getPixelRGBA(x, y);
-				var alpha = ABGR32.alpha(pixel);
-				if (alpha < 16) continue;
-				totalR += ABGR32.red(pixel);
-				totalG += ABGR32.green(pixel);
-				totalB += ABGR32.blue(pixel);
+				if (ABGR32.alpha(pixel) < 16) continue;
+				var r = ABGR32.red(pixel);
+				var g = ABGR32.green(pixel);
+				var b = ABGR32.blue(pixel);
+				// 跳过过暗像素（阴影/轮廓），避免拉低平均色导致整体偏深
+				if (0.299F * r + 0.587F * g + 0.114F * b < 50F) continue;
+				totalR += r;
+				totalG += g;
+				totalB += b;
 				samples++;
 			}
 		if (samples == 0) return BASE;

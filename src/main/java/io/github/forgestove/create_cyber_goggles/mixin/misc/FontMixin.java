@@ -1,7 +1,7 @@
 package io.github.forgestove.create_cyber_goggles.mixin.misc;
 import io.github.forgestove.create_cyber_goggles.CCG;
-import io.github.forgestove.create_cyber_goggles.core.api.Self;
 import io.github.forgestove.create_cyber_goggles.core.util.ItemCountFontUtil;
+import io.github.forgestove.create_cyber_goggles.core.util.contract.Self;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.Font.DisplayMode;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -31,7 +31,7 @@ public abstract class FontMixin implements Self<Font> {
 		int packedLightCoords,
 		CallbackInfoReturnable<Integer> cir
 	) {
-		if (!CCG.config.misc.createStyleCount) return;
+		if (!CCG.config.misc.createStackCount.enableCreateStyleStackCount) return;
 		ItemCountFontUtil.drawOutline(thiz(), text, x, y, color, dropShadow, matrix, buffer, packedLightCoords, cir);
 	}
 }

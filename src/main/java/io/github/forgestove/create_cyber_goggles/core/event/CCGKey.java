@@ -1,6 +1,6 @@
 package io.github.forgestove.create_cyber_goggles.core.event;
 import io.github.forgestove.create_cyber_goggles.CCG;
-import io.github.forgestove.create_cyber_goggles.core.util.CCGMods;
+import io.github.forgestove.create_cyber_goggles.core.factory.CCGMods;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.network.chat.Component;
@@ -14,19 +14,18 @@ import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.mc;
 public enum CCGKey {
 	clickPenetrate(Type.KEYSYM, KEY_LCONTROL),
 	clipboardPageScroll(Type.KEYSYM, KEY_LCONTROL),
-	correctionSublevel(Type.KEYSYM, KEY_LCONTROL, CCGMods.SIMULATED),
-	handleMoveSublevel(Type.KEYSYM, KEY_LCONTROL, CCGMods.SIMULATED),
+	correctionSublevel(Type.KEYSYM, KEY_LCONTROL, CCGMods.simulated),
+	handleMoveSublevel(Type.KEYSYM, KEY_LCONTROL, CCGMods.simulated),
 	interactOpposite(Type.KEYSYM, KEY_TAB),
-	openConfig,
-	openStock,
+	openConfig(Type.KEYSYM, KEY_BACKSLASH),
 	previewFilter,
-	showHoneyGlue(CCGMods.SIMULATED),
-	showStress(Type.KEYSYM, KEY_TAB),
+	showHoneyGlue(CCGMods.simulated),
+	showStress(Type.KEYSYM, KEY_LSHIFT),
 	showSuperGlue,
 	stockRequestSelectAll(Type.KEYSYM, KEY_LALT),
 	stockRequestSetter(Type.MOUSE, MOUSE_BUTTON_MIDDLE),
 	toggleItemOverlay(Type.KEYSYM, KEY_LCONTROL),
-	usePhysicsStaff(CCGMods.SIMULATED),
+	usePhysicsStaff(CCGMods.simulated),
 	useSchematic;
 	public final Lazy<KeyMapping> keyMapping;
 	private final CCGMods requiredMod;
@@ -35,7 +34,12 @@ public enum CCGKey {
 	}
 	CCGKey(@NotNull Key key, CCGMods requiredMod) {
 		this.requiredMod = requiredMod;
-		keyMapping = Lazy.of(new KeyMapping(CCG.ID + ".key." + name(), key.getType(), key.getValue(), "key.categories." + CCG.ID));
+		keyMapping = Lazy.of(new KeyMapping(
+			CCG.ID + ".key." + name(),
+			key.getType(),
+			key.getValue(),
+			"key.categories.create_cyber_goggles"
+		));
 	}
 	CCGKey(@NotNull CCGMods requiredMod) {
 		this(UNKNOWN, requiredMod);

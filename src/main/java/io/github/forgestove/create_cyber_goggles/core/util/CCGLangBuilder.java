@@ -1,5 +1,4 @@
 package io.github.forgestove.create_cyber_goggles.core.util;
-import com.simibubi.create.foundation.utility.CreateLang;
 import joptsimple.internal.Strings;
 import net.createmod.catnip.lang.LangNumberFormat;
 import net.minecraft.ChatFormatting;
@@ -17,7 +16,6 @@ import java.util.List;
 
 import static io.github.forgestove.create_cyber_goggles.core.util.CCGUtil.mc;
 import static net.minecraft.ChatFormatting.*;
-@SuppressWarnings("unused")
 public class CCGLangBuilder {
 	public static final float DEFAULT_SPACE_WIDTH = 4.0F;
 	public String namespace;
@@ -36,35 +34,17 @@ public class CCGLangBuilder {
 		component = component == null ? customComponent : component.append(customComponent);
 		return this;
 	}
-	public CCGLangBuilder newLine() {
-		return text("\n");
-	}
 	public CCGLangBuilder seconds() {
-		return add(CreateLang.translate("generic.unit.seconds").component());
+		return add(Component.translatable("create.generic.unit.seconds"));
 	}
-	public CCGLangBuilder seconds(ChatFormatting format) {
-		return add(CreateLang.translate("generic.unit.seconds").style(format).component());
-	}
-	public CCGLangBuilder translate(String langKey) {
-		return add(Component.translatable(namespace + "." + langKey));
-	}
-	public CCGLangBuilder translate(String langKey, Object... args) {
-		return add(Component.translatable(namespace + "." + langKey, resolveBuilders(args)));
-	}
-	public static Object[] resolveBuilders(Object[] args) {
-		for (var i = 0; i < args.length; i++)
-			if (args[i] instanceof CCGLangBuilder builder) args[i] = builder.component();
-		return args;
-	}
-	public MutableComponent component() {
-		if (component == null) throw new IllegalStateException("Component is null");
-		return component;
-	}
-	public CCGLangBuilder translate(String langKey, ChatFormatting format, Object... args) {
-		return add(Component.translatable(namespace + "." + langKey, resolveBuilders(args)).withStyle(format));
+	public CCGLangBuilder seconds(ChatFormatting... formats) {
+		return add(Component.translatable("create.generic.unit.seconds").withStyle(formats));
 	}
 	public CCGLangBuilder text(String literalText, int color) {
 		return add(Component.literal(literalText).withStyle(style -> style.withColor(color)));
+	}
+	public CCGLangBuilder text(String literalText, net.createmod.catnip.theme.Color color) {
+		return add(Component.literal(literalText).withStyle(style -> style.withColor(color.getRGB())));
 	}
 	public CCGLangBuilder number(double number) {
 		return text(LangNumberFormat.format(number));
@@ -72,8 +52,8 @@ public class CCGLangBuilder {
 	public CCGLangBuilder number(double number, int color) {
 		return text(LangNumberFormat.format(number), color);
 	}
-	public CCGLangBuilder number(double number, ChatFormatting format) {
-		return text(LangNumberFormat.format(number), format);
+	public CCGLangBuilder number(double number, ChatFormatting... formats) {
+		return text(LangNumberFormat.format(number), formats);
 	}
 	public CCGLangBuilder number(float number) {
 		return text(LangNumberFormat.format(number));
@@ -81,8 +61,8 @@ public class CCGLangBuilder {
 	public CCGLangBuilder number(float number, int color) {
 		return text(LangNumberFormat.format(number), color);
 	}
-	public CCGLangBuilder number(float number, ChatFormatting format) {
-		return text(LangNumberFormat.format(number), format);
+	public CCGLangBuilder number(float number, ChatFormatting... formats) {
+		return text(LangNumberFormat.format(number), formats);
 	}
 	public CCGLangBuilder number(int number) {
 		return text(String.valueOf(number));
@@ -90,24 +70,25 @@ public class CCGLangBuilder {
 	public CCGLangBuilder number(int number, int color) {
 		return text(String.valueOf(number), color);
 	}
-	public CCGLangBuilder number(int number, ChatFormatting format) {
-		return text(String.valueOf(number), format);
+	public CCGLangBuilder number(int number, ChatFormatting... formats) {
+		return text(String.valueOf(number), formats);
 	}
 	public CCGLangBuilder is(boolean is) {
-		return is ? translate("message.is", GREEN) : translate("message.not", RED);
-	}
-	public CCGLangBuilder translate(String langKey, ChatFormatting format) {
-		return add(Component.translatable(namespace + "." + langKey).withStyle(format));
+		return add(is
+			? Component.translatable("create_cyber_goggles.message.is").withStyle(GREEN)
+			: Component.translatable("create_cyber_goggles.message.not").withStyle(RED));
 	}
 	public CCGLangBuilder enabled(boolean enabled) {
-		return enabled ? translate("message.enabled", GREEN) : translate("message.disabled", RED);
+		return add(enabled
+			? Component.translatable("create_cyber_goggles.message.enabled").withStyle(GREEN)
+			: Component.translatable("create_cyber_goggles.message.disabled").withStyle(RED));
 	}
 	public CCGLangBuilder progress(float progress, int totalBars) {
 		var filledBars = (int) (Mth.clamp(progress, 0, 1) * totalBars);
 		return text("|".repeat(filledBars), GREEN).text("|".repeat(totalBars - filledBars), GRAY);
 	}
-	public CCGLangBuilder text(String literalText, ChatFormatting format) {
-		return add(Component.literal(literalText).withStyle(format));
+	public CCGLangBuilder text(String literalText, ChatFormatting... formats) {
+		return add(Component.literal(literalText).withStyle(formats));
 	}
 	public CCGLangBuilder fraction(int current, int total) {
 		return number(current, Color.HSBtoRGB((float) current / total * 0.33F, 1, 1)).text(" / ", GRAY).number(total, DARK_GRAY);
@@ -123,15 +104,21 @@ public class CCGLangBuilder {
 		return add(component.copy());
 	}
 	public CCGLangBuilder style(ChatFormatting... formats) {
-		if (component != null) component = component.withStyle(formats);
+		if (component == null) return this;
+		component = component.withStyle(formats);
+		var siblings = component.getSiblings();
+		siblings.replaceAll(c -> c.copy().withStyle(formats));
 		return this;
 	}
-	public CCGLangBuilder color(Color color) {
+	public CCGLangBuilder color(net.createmod.catnip.theme.Color color) {
 		return color(color.getRGB());
 	}
 	public CCGLangBuilder color(int color) {
 		if (component != null) component = component.withStyle(s -> s.withColor(color));
 		return this;
+	}
+	public CCGLangBuilder color(Color color) {
+		return color(color.getRGB());
 	}
 	public CCGLangBuilder fluidName(FluidStack stack) {
 		return add(stack.getHoverName().copy());
@@ -139,12 +126,19 @@ public class CCGLangBuilder {
 	public String string() {
 		return component().getString();
 	}
+	public MutableComponent component() {
+		if (component == null) throw new IllegalStateException("Component is null");
+		return component;
+	}
+	@SuppressWarnings("unused")
 	public String json() {
 		return Serializer.toJson(component(), RegistryAccess.EMPTY);
 	}
+	@SuppressWarnings("unused")
 	public void sendStatus(Player player) {
 		player.displayClientMessage(component(), true);
 	}
+	@SuppressWarnings("unused")
 	public void sendChat(Player player) {
 		player.displayClientMessage(component(), false);
 	}

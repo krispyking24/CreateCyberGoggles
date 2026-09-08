@@ -1,6 +1,6 @@
 package io.github.forgestove.create_cyber_goggles.core.factory;
-import io.github.forgestove.create_cyber_goggles.core.tooltipRenderer.AbstractItemGridRenderer;
-import io.github.forgestove.create_cyber_goggles.core.util.SlotUtil;
+import io.github.forgestove.create_cyber_goggles.compat.fluidlogistics.PackageTankHelper;
+import io.github.forgestove.create_cyber_goggles.core.util.*;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.world.inventory.tooltip.TooltipComponent;
@@ -10,23 +10,16 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 public final class ClientItemListTooltipComponent implements ClientTooltipComponent {
-	private final List<ItemStack> items;
-	private final int maxColumns;
+	private final ItemListTooltipComponent c;
 	private final int columns;
 	private final int rows;
-	private final int indent;
-	public ClientItemListTooltipComponent(List<ItemStack> items, int indent, int maxColumns) {
-		this.items = items;
-		this.indent = indent;
-		this.maxColumns = maxColumns;
-		columns = Math.min(items.size(), maxColumns);
-		rows = (items.size() + maxColumns - 1) / maxColumns;
-	}
 	public static void register(@NotNull RegisterClientTooltipComponentFactoriesEvent event) {
-		event.register(
-			ItemListTooltipComponent.class,
-			data -> new ClientItemListTooltipComponent(data.items(), data.indent(), data.maxColumns())
-		);
+		event.register(ItemListTooltipComponent.class, ClientItemListTooltipComponent::new);
+	}
+	public ClientItemListTooltipComponent(ItemListTooltipComponent c) {
+		this.c = c;
+		columns = Math.min(c.items.size(), c.maxColumns);
+		rows = (c.items.size() + c.maxColumns - 1) / c.maxColumns;
 	}
 	@Override
 	public int getHeight() {
@@ -37,24 +30,25 @@ public final class ClientItemListTooltipComponent implements ClientTooltipCompon
 		return columns * SlotUtil.SIZE + indentPixels(font);
 	}
 	private int indentPixels(@NotNull Font font) {
-		return indent * font.width(" ");
+		return c.indent * font.width(" ");
 	}
 	@Override
 	public void renderImage(@NotNull Font font, int x, int y, @NotNull GuiGraphics gui) {
-		for (var i = 0; i < items.size(); i++) {
-			var col = i % maxColumns;
-			var row = i / maxColumns;
+		for (var i = 0; i < c.items.size(); i++) {
+			var col = i % c.maxColumns;
+			var row = i / c.maxColumns;
 			var slotX = x + col * SlotUtil.SIZE + indentPixels(font);
 			var slotY = y + row * SlotUtil.SIZE;
-			renderSlot(gui, font, items.get(i), slotX, slotY);
+			renderSlot(gui, font, c.items.get(i), slotX, slotY);
 		}
 	}
 	private void renderSlot(GuiGraphics gui, Font font, ItemStack stack, int x, int y) {
 		gui.blitSprite(SlotUtil.SLOT, x, y, 0, SlotUtil.SIZE, SlotUtil.SIZE);
 		gui.renderItem(stack, x + 1, y + 1);
-		if (AbstractItemGridRenderer.isCFLCompressedTank(stack) && stack.getCount() > 1)
-			gui.renderItemDecorations(font, stack, x + 1, y + 1, AbstractItemGridRenderer.formatFluidAmount(stack.getCount()));
-		else gui.renderItemDecorations(font, stack, x + 1, y + 1);
+		var count = stack.getCount();
+		if (PackageTankHelper.isCFLCompressedTank(stack))
+			gui.renderItemDecorations(font, stack, x + 1, y + 1, AmountUtil.formatFluidAmount(count));
+		else if (count > 1) gui.renderItemDecorations(font, stack, x + 1, y + 1, AmountUtil.formatItemCount(count));
 	}
 	public record ItemListTooltipComponent(List<ItemStack> items, int indent, int maxColumns) implements TooltipComponent {}
 }

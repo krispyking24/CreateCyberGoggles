@@ -1,7 +1,9 @@
 package io.github.forgestove.create_cyber_goggles.core.util;
 import com.simibubi.create.AllItems;
 import dev.simulated_team.simulated.index.SimItems;
+import io.github.forgestove.create_cyber_goggles.CCG;
 import io.github.forgestove.create_cyber_goggles.core.event.CCGKey;
+import io.github.forgestove.create_cyber_goggles.core.factory.CCGMods;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import net.minecraft.network.protocol.game.*;
 import net.minecraft.world.entity.player.Inventory;
@@ -16,11 +18,15 @@ public class ItemSwapUtil {
 	/** -2 = 快捷栏选择, -1 = 创造模式销毁, >=0 = 背包交换原点 */
 	private static final int HOTBAR_SELECT = -2;
 	private static final int LOCAL_SPAWN = -3;
-	private static boolean isSwapped;
+	private static boolean swapped;
 	private static int swappedOriginSlot = -1;
 	private static int swappedHandSlot = -1;
 	private static ItemStack preSwapMainHand = ItemStack.EMPTY;
+	public static boolean isSwapped() {
+		return swapped;
+	}
 	public static void tick() {
+		if (mc.screen != null) return;
 		var player = mc.player;
 		if (player == null) return;
 		var inventory = player.getInventory();
@@ -35,9 +41,9 @@ public class ItemSwapUtil {
 			if (isDown && !prevDown) pressedKey = key;
 		}
 		if (pressedKey != null) {
-			if (isSwapped) releaseSwap(inventory);
+			if (swapped) releaseSwap(inventory);
 			pressSwap(getHotkeyItems().get(pressedKey), player.isCreative(), inventory);
-		} else if (isSwapped && !anyHotkeyHeld) releaseSwap(inventory);
+		} else if (swapped && !anyHotkeyHeld) releaseSwap(inventory);
 	}
 	private static Map<CCGKey, ItemStack> getHotkeyItems() {
 		var items = getDefaultItems();
@@ -80,7 +86,7 @@ public class ItemSwapUtil {
 			if (swappedOriginSlot == LOCAL_SPAWN) inventory.setItem(swappedHandSlot, preSwapMainHand);
 			else if (mc.gameMode != null) mc.gameMode.handleCreativeModeItemAdd(preSwapMainHand, 36 + swappedHandSlot); // 创造模式销毁 ——
 		// 通过数据包恢复
-		isSwapped = false;
+		swapped = false;
 		swappedOriginSlot = -1;
 		swappedHandSlot = -1;
 		preSwapMainHand = ItemStack.EMPTY;
@@ -100,7 +106,7 @@ public class ItemSwapUtil {
 			if (mc.player != null) mc.player.connection.send(new ServerboundSetCarriedItemPacket(i));
 			inventory.selected = i;
 			swappedOriginSlot = HOTBAR_SELECT;
-			isSwapped = true;
+			swapped = true;
 			return;
 		}
 		// 2) 主背包 —— 通过容器点击数据包交换（完全同步）
@@ -126,25 +132,25 @@ public class ItemSwapUtil {
 			inventory.setItem(handSlot, inventory.getItem(i));
 			inventory.setItem(i, preSwapMainHand);
 			swappedOriginSlot = i;
-			isSwapped = true;
+			swapped = true;
 			return;
 		}
 		// 3) 背包中未找到 —— 回退处理
 		// 创造模式：所有物品通过数据包；生存模式：非法杖物品本地生成（释放时消失）
 		if (isCreative && mc.gameMode != null) {
+			swapped = true;
 			mc.gameMode.handleCreativeModeItemAdd(target, 36 + handSlot);
-			isSwapped = true;
-		} else if (!(CCGMods.SIMULATED.isLoaded() && target.is(SimItems.PHYSICS_STAFF.get()))) {
-			inventory.setItem(handSlot, target.copy());
+		} else if (!CCGMods.simulated.isLoaded() || !target.is(SimItems.PHYSICS_STAFF.get()) || CCG.config.aeronautics.enablePhysicsStaff) {
+			swapped = true;
 			swappedOriginSlot = LOCAL_SPAWN;
-			isSwapped = true;
+			inventory.setItem(handSlot, target.copy());
 		}
 	}
 	private static LinkedHashMap<CCGKey, ItemStack> getDefaultItems() {
 		var items = new LinkedHashMap<CCGKey, ItemStack>();
 		items.put(CCGKey.useSchematic, AllItems.SCHEMATIC_AND_QUILL.asStack());
 		items.put(CCGKey.showSuperGlue, AllItems.SUPER_GLUE.asStack());
-		CCGMods.SIMULATED.executeIfInstalled(() -> {
+		CCGMods.simulated.executeIfInstalled(() -> {
 			items.put(CCGKey.usePhysicsStaff, SimItems.PHYSICS_STAFF.asStack());
 			items.put(CCGKey.showHoneyGlue, SimItems.HONEY_GLUE.asStack());
 		});

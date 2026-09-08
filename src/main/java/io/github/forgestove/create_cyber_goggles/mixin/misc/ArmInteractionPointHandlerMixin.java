@@ -23,20 +23,19 @@ public class ArmInteractionPointHandlerMixin {
 	@Unique private static long ccg$rangeCacheKey = Long.MIN_VALUE;
 	@Unique private static Couple<List<BlockPos>> ccg$cachedRangeHints = Couple.create(ArrayList::new);
 	@WrapOperation(
-		method = "flushSettings", at = @At(
-		value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z"
-	)
+		method = "flushSettings",
+		at = @At(value = "INVOKE", target = "Lnet/minecraft/core/BlockPos;closerThan(Lnet/minecraft/core/Vec3i;D)Z")
 	)
 	private static boolean flushSettings(BlockPos instance, Vec3i vector, double distance, Operation<Boolean> original) {
 		return CCG.config.misc.removeMechanicalArmLimit || original.call(instance, vector, distance);
 	}
 	@WrapOperation(method = "tick", at = @At(value = "INVOKE", target = "Ljava/util/List;clear()V"))
-	private static void ccg$preventSelectionDiscardOnArmSwitch(List<?> instance, Operation<Void> original) {
+	private static void preventSelectionDiscardOnArmSwitch(List<?> instance, Operation<Void> original) {
 		if (CCG.config.misc.preventSelectionDiscard) return;
 		original.call(instance);
 	}
 	@Inject(method = "tick", at = @At("TAIL"))
-	private static void ccg$renderPlacementPreviewConnections(CallbackInfo ci) {
+	private static void renderPlacementPreviewConnections(CallbackInfo ci) {
 		if (!CCG.config.outliner.betterLine) return;
 		if (currentItem != null && currentSelection != null && !currentSelection.isEmpty()) {
 			var player = mc.player;
@@ -69,7 +68,7 @@ public class ArmInteractionPointHandlerMixin {
 				.lineWidth(1 / 16f)
 				.colored(allClose ? 0x9ede73 : 0xff7171);
 		if (removeLimit) return;
-		var hints = ccg$getRangeHints(pos.getY() - 1);
+		var hints = ccg$getRangeHints(pos.getY());
 		if (hints == null) return;
 		outliner.showCluster("MechanicalArmConnectableRange", hints.getFirst())
 			.withFaceTexture(AllSpecialTextures.THIN_CHECKERED)
@@ -88,44 +87,40 @@ public class ArmInteractionPointHandlerMixin {
 			key = key * 31L + point.getPos().asLong();
 		}
 		if (key == ccg$rangeCacheKey) return ccg$cachedRangeHints;
+		ccg$rangeCacheKey = key;
 		var range = ArmBlockEntity.getRange();
-		var minX = Integer.MAX_VALUE;
-		var maxX = Integer.MIN_VALUE;
-		var minZ = Integer.MAX_VALUE;
-		var maxZ = Integer.MIN_VALUE;
-		var hasValidPoint = false;
+		var minX = Integer.MIN_VALUE;
+		var maxX = Integer.MAX_VALUE;
+		var minZ = Integer.MIN_VALUE;
+		var maxZ = Integer.MAX_VALUE;
+		var validPoints = new ArrayList<BlockPos>();
 		for (var point : currentSelection) {
 			if (point == null || !point.isValid()) continue;
-			hasValidPoint = true;
 			var center = point.getPos();
-			minX = Math.min(minX, center.getX() - range);
-			maxX = Math.max(maxX, center.getX() + range);
-			minZ = Math.min(minZ, center.getZ() - range);
-			maxZ = Math.max(maxZ, center.getZ() + range);
+			validPoints.add(center);
+			minX = Math.max(minX, center.getX() - range);
+			maxX = Math.min(maxX, center.getX() + range);
+			minZ = Math.max(minZ, center.getZ() - range);
+			maxZ = Math.min(maxZ, center.getZ() + range);
 		}
-		Couple<List<BlockPos>> hints = Couple.create(ArrayList::new);
-		if (hasValidPoint) {
-			var rangeSq = range * range;
-			for (var x = minX; x <= maxX; x++)
-				for (var z = minZ; z <= maxZ; z++) {
-					var candidate = new BlockPos(x, yLevel, z);
-					var connectable = true;
-					for (var point : currentSelection) {
-						if (point == null || !point.isValid()) continue;
-						var center = point.getPos();
-						var dx = x - center.getX();
-						var dy = yLevel - center.getY();
-						var dz = z - center.getZ();
-						if (dx * dx + dy * dy + dz * dz >= rangeSq) {
-							connectable = false;
-							break;
-						}
-					}
-					hints.get(connectable).add(candidate);
+		if (validPoints.isEmpty()) return ccg$cachedRangeHints = Couple.create(ArrayList::new);
+		var hints = Couple.<List<BlockPos>>create(ArrayList::new);
+		var rangeSq = range * range;
+		var points = validPoints.toArray(new BlockPos[0]);
+		for (var x = minX; x <= maxX; x++)
+			for (var z = minZ; z <= maxZ; z++) {
+				var candidate = new BlockPos(x, yLevel - 1, z);
+				var connectable = true;
+				for (var center : points) {
+					var dx = x - center.getX();
+					var dy = yLevel - center.getY();
+					var dz = z - center.getZ();
+					if (dx * dx + dy * dy + dz * dz < rangeSq) continue;
+					connectable = false;
+					break;
 				}
-		}
-		ccg$rangeCacheKey = key;
-		ccg$cachedRangeHints = hints;
-		return ccg$cachedRangeHints;
+				hints.get(connectable).add(candidate);
+			}
+		return ccg$cachedRangeHints = hints;
 	}
 }

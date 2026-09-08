@@ -1,5 +1,5 @@
 package io.github.forgestove.create_cyber_goggles.core.factory;
-import io.github.forgestove.create_cyber_goggles.core.util.SlotUtil;
+import io.github.forgestove.create_cyber_goggles.core.util.*;
 import net.minecraft.client.gui.*;
 import net.minecraft.client.gui.Font.DisplayMode;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
@@ -12,19 +12,14 @@ import net.neoforged.neoforge.client.event.RegisterClientTooltipComponentFactori
 import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 public final class ClientItemEntryTooltipComponent implements ClientTooltipComponent {
-	private final ItemStack stack;
-	private final int indent;
+	private final ItemEntryTooltipComponent c;
 	private final Component label;
-	public ClientItemEntryTooltipComponent(ItemStack stack, int indent, Component label) {
-		this.stack = stack;
-		this.indent = indent;
-		this.label = label.copy().withStyle(stack.getDisplayName().getStyle());
-	}
 	public static void register(@NotNull RegisterClientTooltipComponentFactoriesEvent event) {
-		event.register(
-			ItemEntryTooltipComponent.class,
-			data -> new ClientItemEntryTooltipComponent(data.stack(), data.indent(), data.label())
-		);
+		event.register(ItemEntryTooltipComponent.class, ClientItemEntryTooltipComponent::new);
+	}
+	public ClientItemEntryTooltipComponent(ItemEntryTooltipComponent c) {
+		this.c = c;
+		label = c.label.copy().withStyle(c.stack.getRarity().getStyleModifier().apply(c.label.getStyle()));
 	}
 	@Override
 	public int getHeight() {
@@ -35,7 +30,7 @@ public final class ClientItemEntryTooltipComponent implements ClientTooltipCompo
 		return indentPixels(font) + SlotUtil.SIZE_SLIM + font.width(label);
 	}
 	private int indentPixels(@NotNull Font font) {
-		return indent * font.width(" ");
+		return c.indent * font.width(" ");
 	}
 	@Override
 	public void renderText(@NotNull Font font, int x, int y, @NotNull Matrix4f matrix, @NotNull BufferSource source) {
@@ -50,8 +45,9 @@ public final class ClientItemEntryTooltipComponent implements ClientTooltipCompo
 		var slotX = x + indentPixels(font);
 		pose.translate(slotX, y, 450F);
 		pose.scale(0.75F, 0.75F, 1F);
-		gui.renderItem(stack, 0, 0);
-		gui.renderItemDecorations(font, stack, 0, 0);
+		gui.renderItem(c.stack, 0, 0);
+		var count = c.stack.getCount();
+		gui.renderItemDecorations(font, c.stack, 0, 0, count > 1 ? AmountUtil.formatItemCount(count) : null);
 		pose.popPose();
 	}
 	public record ItemEntryTooltipComponent(ItemStack stack, int indent, Component label) implements TooltipComponent {}
