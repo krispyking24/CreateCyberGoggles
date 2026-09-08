@@ -57,6 +57,16 @@ jobs:
         id: mod_version
         run: echo "version=$(grep '^modVersion=' gradle.properties | cut -d'=' -f2)" >> $GITHUB_OUTPUT
 
+      - name: Create Git Tag
+        if: github.event_name == 'push'
+        env:
+          VERSION: ${{ steps.mod_version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "v$VERSION"
+          git push origin "v$VERSION"
+
       - name: Create GitHub Release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v2
